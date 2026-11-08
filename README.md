@@ -1,4 +1,4 @@
-# GreetMate — Minecraft 1.21.8 (Fabric)
+# GreetMate — Minecraft 1.21.8 (Fabric) — v1.1.1
 
 Клиентский Fabric-мод для персональных приветствий игроков при появлении в TAB.
 
