@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "greetmate",
+  "version": "${version}",
+  "name": "GreetMate",
+  "description": "Personal chat greetings when selected players appear in TAB.",
+  "authors": ["Governix"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "ru.governix.greet.client.GreetMateClient"
+    ]
+  },
+  "mixins": [
+    "greetmate.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.8",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
