@@ -1,0 +1,100 @@
+name: Publish GreetMate Release
+
+on:
+  workflow_run:
+    workflows: ["Build GreetMate"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: greetmate-release-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the exact build commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Ensure this is the latest main build
+        id: freshness
+        shell: bash
+        env:
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$RUN_SHA" != "$MAIN_SHA" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale build $RUN_SHA; main is now $MAIN_SHA."
+            exit 0
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Read release version
+        if: steps.freshness.outputs.publish == 'true'
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(awk -F= '$1 == "mod_version" {print $2}' gradle.properties | tr -d '\r')"
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download the JAR from this successful build
+        if: steps.freshness.outputs.publish == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: GreetMate-Minecraft-1.21.8
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: dist
+
+      - name: Publish GitHub Release
+        if: steps.freshness.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          JAR="$(find dist -maxdepth 1 -type f -name '*.jar' -print -quit)"
+          test -n "$JAR"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; not creating a duplicate."
+            exit 0
+          fi
+
+          cat > release-notes.md <<EOF
+          ## GreetMate $VERSION
+
+          Клиентский Fabric-мод для Minecraft 1.21.8.
+
+          ### Изменения
+          - Статус игрока определяется по актуальному списку TAB Minecraft.
+          - Обрабатываются серверные события скрытия игрока из TAB и его возвращения.
+          - Персональные приветствия и настройки каждого ника сохраняются без изменений.
+
+          ### Установка
+          Помести приложенный `$(basename "$JAR")` в папку `.minecraft/mods`.
+          Требуются Fabric Loader и Fabric API для Minecraft 1.21.8.
+          EOF
+
+          gh release create "$TAG" "$JAR" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "GreetMate $VERSION" \
+            --notes-file release-notes.md \
+            --target "$TARGET_SHA" \
+            --latest
