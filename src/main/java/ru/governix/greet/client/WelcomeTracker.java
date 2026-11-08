@@ -17,8 +17,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class WelcomeTracker {
-    private static final Set<UUID> ONLINE_IDS = new HashSet<>();
-    private static final Map<UUID, String> ONLINE_NAMES = new HashMap<>();
+    // Tracks transitions into/out of the server's listed TAB state for greeting events.
+    private static final Set<UUID> LISTED_IDS = new HashSet<>();
     private static final Map<String, String> LAST_GREETING = new HashMap<>();
     private static final Queue<String> OUTGOING = new ArrayDeque<>();
 
@@ -28,8 +28,7 @@ public final class WelcomeTracker {
     private WelcomeTracker() {}
 
     public static void reset() {
-        ONLINE_IDS.clear();
-        ONLINE_NAMES.clear();
+        LISTED_IDS.clear();
         LAST_GREETING.clear();
         OUTGOING.clear();
         initialized = false;
@@ -38,31 +37,45 @@ public final class WelcomeTracker {
 
     public static void handlePlayerList(MinecraftClient client, ClientPlayNetworkHandler handler,
                                         PlayerListS2CPacket packet) {
-        if (!packet.getActions().contains(PlayerListS2CPacket.Action.ADD_PLAYER)) return;
+        boolean addsPlayers = packet.getActions().contains(PlayerListS2CPacket.Action.ADD_PLAYER);
+        boolean updatesListed = packet.getActions().contains(PlayerListS2CPacket.Action.UPDATE_LISTED);
 
-        // The first player-list update establishes the initial TAB snapshot.
-        // Existing players are remembered, not greeted.
+        if (!addsPlayers && !updatesListed) return;
+
+        // Snapshot the initial TAB roster once. Do not greet people who were already online
+        // when this client finished connecting.
         if (!initialized) {
             for (PlayerListEntry entry : handler.getListedPlayerListEntries()) {
-                UUID id = entry.getProfile().getId();
-                String name = entry.getProfile().getName();
-                ONLINE_IDS.add(id);
-                ONLINE_NAMES.put(id, name);
+                LISTED_IDS.add(entry.getProfile().getId());
             }
             initialized = true;
             return;
         }
 
-        for (PlayerListS2CPacket.Entry entry : packet.getPlayerAdditionEntries()) {
-            if (!entry.listed() || entry.profile() == null) continue;
-
+        for (PlayerListS2CPacket.Entry entry : packet.getEntries()) {
             UUID id = entry.profileId();
-            String name = entry.profile().getName();
+
+            // UPDATE_LISTED=false means the server explicitly removed this player from TAB.
+            // If they are listed again later, that transition can be detected as a new entry.
+            if (updatesListed && !entry.listed()) {
+                LISTED_IDS.remove(id);
+                continue;
+            }
+
+            if (!entry.listed()) continue;
+
+            PlayerListEntry currentEntry = handler.getPlayerListEntry(id);
+            String name = currentEntry != null
+                    ? currentEntry.getProfile().getName()
+                    : entry.profile() != null ? entry.profile().getName() : null;
+
             if (name == null || name.isBlank()) continue;
 
-            boolean newToTab = ONLINE_IDS.add(id);
-            ONLINE_NAMES.put(id, name);
-            if (!newToTab || client.player == null) continue;
+            // Only ADD_PLAYER and UPDATE_LISTED can represent a new appearance in TAB.
+            if (!addsPlayers && !updatesListed) continue;
+
+            boolean newlyListed = LISTED_IDS.add(id);
+            if (!newlyListed || client.player == null) continue;
             if (!GreetConfig.isEnabled() || !GreetConfig.containsTarget(name)) continue;
 
             String chosen = chooseGreeting(name);
@@ -73,10 +86,7 @@ public final class WelcomeTracker {
     }
 
     public static void handlePlayerRemove(List<UUID> removedIds) {
-        for (UUID id : removedIds) {
-            ONLINE_IDS.remove(id);
-            ONLINE_NAMES.remove(id);
-        }
+        LISTED_IDS.removeAll(removedIds);
     }
 
     private static String chooseGreeting(String playerName) {
@@ -107,7 +117,22 @@ public final class WelcomeTracker {
         }
     }
 
+    /**
+     * Read the live list maintained by Minecraft itself instead of a second,
+     * potentially stale mod-side cache. This is the authoritative TAB-listed state.
+     */
     public static boolean isOnline(String name) {
-        return ONLINE_NAMES.values().stream().anyMatch(value -> value.equalsIgnoreCase(name));
+        if (name == null || name.isBlank()) return false;
+
+        ClientPlayNetworkHandler handler = MinecraftClient.getInstance().getNetworkHandler();
+        if (handler == null) return false;
+
+        for (PlayerListEntry entry : handler.getListedPlayerListEntries()) {
+            String listedName = entry.getProfile().getName();
+            if (listedName != null && listedName.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
