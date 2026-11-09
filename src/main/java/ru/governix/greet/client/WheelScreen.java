@@ -106,13 +106,7 @@ public final class WheelScreen extends Screen {
         hovered = hitNode(mouseX, mouseY);
 
         if (items.isEmpty()) {
-            String empty = choosingPlayers()
-                    ? "Сейчас нет отслеживаемых игроков онлайн"
-                    : "Для этого игрока пока нет сохранённых фраз";
-            ctx.drawCenteredTextWithShadow(textRenderer, empty, centerX, centerY - 4, 0xFFB6C2D6);
-            ctx.drawCenteredTextWithShadow(textRenderer,
-                    choosingPlayers() ? "Добавь ник в меню G и дождись его появления в TAB" : "Добавь свои фразы в меню G",
-                    centerX, centerY + 13, 0xFF7F8DA5);
+            // Empty-state text is drawn below the center hub, after the hub itself.
         } else {
             for (int i = 0; i < itemCount; i++) {
                 String value = items.get(pageStart() + i);
@@ -143,6 +137,10 @@ public final class WheelScreen extends Screen {
             ctx.drawCenteredTextWithShadow(textRenderer, "НАЗАД", centerX, centerY + 12, 0xFF9CAAC1);
         }
 
+        if (items.isEmpty()) {
+            drawEmptyState(ctx, choosingPlayers());
+        }
+
         if (hovered >= 0 && !items.isEmpty() && !choosingPlayers()) {
             String fullText = items.get(pageStart() + hovered);
             ctx.drawCenteredTextWithShadow(textRenderer,
@@ -164,6 +162,28 @@ public final class WheelScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, "Мышь — выбрать  •  Колесо — страницы  •  ESC — назад",
                 centerX, height - 22, 0xFF7F8DA5);
         super.render(ctx, mouseX, mouseY, delta);
+    }
+
+    private void drawEmptyState(DrawContext ctx, boolean choosingPlayers) {
+        String[] lines = choosingPlayers
+                ? new String[] {
+                    "Нет отслеживаемых игроков онлайн",
+                    "Добавь ник через меню G",
+                    "и дождись его появления в TAB"
+                }
+                : new String[] {
+                    "Для этого игрока пока нет фраз",
+                    "Добавь свои фразы",
+                    "в меню настроек G"
+                };
+
+        int maxTextWidth = Math.max(120, Math.min(width - 40, radius * 2 - 24));
+        int firstY = centerY + 70;
+        for (int i = 0; i < lines.length; i++) {
+            String line = textRenderer.trimToWidth(lines[i], maxTextWidth);
+            int color = i == 0 ? 0xFFB6C2D6 : 0xFF8998B2;
+            ctx.drawCenteredTextWithShadow(textRenderer, line, centerX, firstY + i * 14, color);
+        }
     }
 
     private void drawCircle(DrawContext ctx, int cx, int cy, int r, int color) {
