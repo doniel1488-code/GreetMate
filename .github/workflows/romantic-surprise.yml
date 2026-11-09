@@ -1,0 +1,55 @@
+name: Romantic Surprise — Windows EXE
+
+on:
+  push:
+    branches:
+      - romantic-surprise
+    paths:
+      - "romantic-surprise/**"
+      - ".github/workflows/romantic-surprise.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Windows application
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pyinstaller
+
+      - name: Build standalone EXE
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name PismoDlyaTebya romantic-surprise/main.py
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PismoDlyaTebya-Windows
+          path: dist/PismoDlyaTebya.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: romantic-surprise-v1.0.0
+          name: "Романтический сюрприз 1.0.0"
+          body: |
+            Маленькое письмо для тебя — отдельное Windows-приложение с анимированными сердечками, персональным обращением и маленькими комплиментами.
+
+            Скачай PismoDlyaTebya.exe и запусти двойным щелчком. Интернет для работы не нужен.
+          files: dist/PismoDlyaTebya.exe
+          fail_on_unmatched_files: true
+          overwrite_files: true
+          make_latest: false
