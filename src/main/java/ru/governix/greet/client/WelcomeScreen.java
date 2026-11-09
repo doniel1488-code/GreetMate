@@ -16,12 +16,16 @@ public final class WelcomeScreen extends Screen {
     private TextFieldWidget search;
     private TextFieldWidget nickInput;
     private TextFieldWidget messageInput;
+
     private String selectedNick;
-    private String notice = "Добавь игрока, выбери его и впиши своё сообщение.";
+    private String notice = "Выбери игрока слева, чтобы настроить его приветствия.";
+    private int editingGreetingIndex = -1;
     private int targetScroll;
     private int messageScroll;
+
     private int px, py, pw, ph, lx, ly, lw, rx, rw, paneH;
     private int searchY, nickY, messageY, targetY, messageListY;
+    private int messageActionX, messageCancelX, messageFieldWidth;
 
     public WelcomeScreen(Screen parent) {
         super(Text.literal("GreetMate"));
@@ -30,10 +34,11 @@ public final class WelcomeScreen extends Screen {
 
     @Override
     protected void init() {
-        pw = Math.min(720, width - 24);
-        ph = Math.min(430, height - 24);
+        pw = Math.min(760, width - 24);
+        ph = Math.min(450, height - 24);
         px = (width - pw) / 2;
         py = (height - ph) / 2;
+
         lx = px + 16;
         ly = py + 76;
         lw = Math.min(250, (pw - 44) / 2);
@@ -62,13 +67,17 @@ public final class WelcomeScreen extends Screen {
         nickInput.setEditableColor(0xFFF0F4FF);
         addDrawableChild(nickInput);
 
-        int messageW = Math.max(110, rw - 100);
-        messageInput = new TextFieldWidget(textRenderer, rx + 12, messageY, messageW, 20, Text.literal("Сообщение"));
+        messageFieldWidth = Math.max(120, rw - 164);
+        messageInput = new TextFieldWidget(textRenderer, rx + 12, messageY,
+                messageFieldWidth, 20, Text.literal("Сообщение"));
         messageInput.setMaxLength(256);
-        messageInput.setPlaceholder(Text.literal("Напиши, как обычно пишешь..."));
+        messageInput.setPlaceholder(Text.literal("Напиши своё сообщение..."));
         messageInput.setDrawsBackground(false);
         messageInput.setEditableColor(0xFFF0F4FF);
         addDrawableChild(messageInput);
+
+        messageActionX = rx + 20 + messageFieldWidth;
+        messageCancelX = messageActionX + 92;
     }
 
     @Override
@@ -79,76 +88,108 @@ public final class WelcomeScreen extends Screen {
         panel(ctx, rx, ly, rw, paneH, 0xFF141B2B, 0xFF26334A);
         ctx.fill(px + 1, py + 1, px + pw - 1, py + 4, 0xFF7485FF);
 
-        ctx.drawTextWithShadow(textRenderer, "GreetMate", px + 20, py + 16, 0xFFF2F5FF);
-        ctx.drawTextWithShadow(textRenderer, "Персональные приветствия и быстрый выбор", px + 20, py + 37, 0xFF8F9CB5);
+        drawTextCenteredY(ctx, "GreetMate", px + 20, py + 12, 18, 0xFFF2F5FF);
+        drawTextCenteredY(ctx, "Персональные приветствия и быстрый выбор", px + 20, py + 32, 18, 0xFF8F9CB5);
         button(ctx, px + pw - 132, py + 18, 112, 28,
-                GreetConfig.isEnabled() ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ", GreetConfig.isEnabled(), mx, my);
+                GreetConfig.isAutoGreetingEnabled() ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ",
+                GreetConfig.isAutoGreetingEnabled(), mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, "Игроки", lx + 12, ly + 12, 0xFFE7ECFA);
-        ctx.drawTextWithShadow(textRenderer, GreetConfig.getTargets().size() + " ников", lx + lw - 64, ly + 12, 0xFF8190AA);
+        drawTextCenteredY(ctx, "Игроки", lx + 12, ly + 7, 18, 0xFFE7ECFA);
+        drawTextCenteredY(ctx, GreetConfig.getTargets().size() + " ников",
+                lx + lw - 64, ly + 7, 18, 0xFF8190AA);
         inputFrame(ctx, lx + 11, searchY - 1, lw - 22, 22, search.isFocused());
 
         List<String> names = filteredTargets();
-        int visible = Math.max(1, Math.min(7, (nickY - targetY - 6) / 25));
-        targetScroll = clamp(targetScroll, names.size(), visible);
-        for (int i = 0; i < visible && targetScroll + i < names.size(); i++) {
+        int visibleTargets = Math.max(1, Math.min(7, (nickY - targetY - 6) / 25));
+        targetScroll = clamp(targetScroll, names.size(), visibleTargets);
+
+        for (int i = 0; i < visibleTargets && targetScroll + i < names.size(); i++) {
             String name = names.get(targetScroll + i);
-            int y = targetY + i * 25;
+            int rowY = targetY + i * 25;
             boolean chosen = name.equalsIgnoreCase(selectedNick);
-            boolean over = inside(mx, my, lx + 8, y - 3, lw - 16, 23);
-            if (chosen || over) ctx.fill(lx + 8, y - 3, lx + lw - 8, y + 20, chosen ? 0xFF28375A : 0xFF1D2940);
-            if (chosen) ctx.fill(lx + 8, y - 3, lx + 11, y + 20, 0xFF7C8CFF);
-            ctx.drawTextWithShadow(textRenderer, name, lx + 17, y + 3, 0xFFF0F3FC);
+            boolean over = inside(mx, my, lx + 8, rowY - 3, lw - 16, 23);
+
+            if (chosen || over) {
+                ctx.fill(lx + 8, rowY - 3, lx + lw - 8, rowY + 20,
+                        chosen ? 0xFF28375A : 0xFF1D2940);
+            }
+            if (chosen) ctx.fill(lx + 8, rowY - 3, lx + 11, rowY + 20, 0xFF7C8CFF);
+
+            drawTextCenteredY(ctx, textRenderer.trimToWidth(name, lw - 56),
+                    lx + 17, rowY - 3, 23, 0xFFF0F3FC);
+
             boolean online = WelcomeTracker.isOnline(name);
-            ctx.drawTextWithShadow(textRenderer, online ? "●" : "○", lx + lw - 29, y + 3,
-                    online ? 0xFF5CE0A0 : 0xFF65718A);
+            drawTextCenteredY(ctx, online ? "●" : "○", lx + lw - 29,
+                    rowY - 3, 23, online ? 0xFF5CE0A0 : 0xFF65718A);
         }
+
         if (names.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, search.getText().isBlank() ? "Пока никого нет" : "Ничего не найдено",
-                    lx + 14, targetY + 8, 0xFF78859D);
+            drawTextCenteredY(ctx, search.getText().isBlank() ? "Список пуст" : "Ничего не найдено",
+                    lx + 14, targetY, 23, 0xFF78859D);
         }
 
         inputFrame(ctx, lx + 11, nickY - 1, nickInput.getWidth() + 2, 22, nickInput.isFocused());
         button(ctx, lx + 19 + nickInput.getWidth(), nickY, 38, 20, "+", true, mx, my);
-        button(ctx, lx + 61 + nickInput.getWidth(), nickY, lw - nickInput.getWidth() - 81, 20, "УДАЛИТЬ", false, mx, my);
+        button(ctx, lx + 61 + nickInput.getWidth(), nickY,
+                lw - nickInput.getWidth() - 81, 20, "УДАЛИТЬ", selectedNick != null, mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, selectedNick == null ? "Сообщения" : "Для " + selectedNick,
-                rx + 12, ly + 12, 0xFFE7ECFA);
-        ctx.drawTextWithShadow(textRenderer, selectedNick == null ? "Сначала выбери ник слева" :
-                        "Вариантов: " + GreetConfig.getGreetings(selectedNick).size() + "  •  случайный выбор",
-                rx + 12, ly + 31, 0xFF8190AA);
-        ctx.drawTextWithShadow(textRenderer, "{player} — необязательная подстановка ника",
-                rx + 12, ly + 48, 0xFF74829B);
+        drawTextCenteredY(ctx, selectedNick == null ? "Сообщения" : "Для " + selectedNick,
+                rx + 12, ly + 7, 18, 0xFFE7ECFA);
+        drawTextCenteredY(ctx, selectedNick == null ? "Сначала выбери ник слева" :
+                        "Вариантов: " + GreetConfig.getGreetings(selectedNick).size() + " · случайный выбор",
+                rx + 12, ly + 25, 18, 0xFF8190AA);
+        drawTextCenteredY(ctx, "{player} — подстановка ника (необязательно)",
+                rx + 12, ly + 43, 18, 0xFF74829B);
 
         List<String> messages = selectedNick == null ? List.of() : GreetConfig.getGreetings(selectedNick);
-        int msgVisible = Math.max(1, Math.min(7, (messageY - messageListY - 6) / 25));
-        messageScroll = clamp(messageScroll, messages.size(), msgVisible);
-        for (int i = 0; i < msgVisible && messageScroll + i < messages.size(); i++) {
+        int visibleMessages = Math.max(1, Math.min(7, (messageY - messageListY - 6) / 25));
+        messageScroll = clamp(messageScroll, messages.size(), visibleMessages);
+
+        for (int i = 0; i < visibleMessages && messageScroll + i < messages.size(); i++) {
             int index = messageScroll + i;
-            int y = messageListY + i * 25;
-            boolean over = inside(mx, my, rx + 8, y - 3, rw - 16, 23);
-            ctx.fill(rx + 8, y - 3, rx + rw - 8, y + 20, over ? 0xFF1D2940 : 0xFF192235);
-            ctx.drawTextWithShadow(textRenderer,
-                    textRenderer.trimToWidth(messages.get(index), rw - 58), rx + 16, y + 3, 0xFFDDE4F4);
-            ctx.drawTextWithShadow(textRenderer, "×", rx + rw - 27, y + 2, 0xFFFF8795);
+            int rowY = messageListY + i * 25;
+            boolean selectedForEdit = index == editingGreetingIndex;
+            boolean over = inside(mx, my, rx + 8, rowY - 3, rw - 16, 23);
+
+            ctx.fill(rx + 8, rowY - 3, rx + rw - 8, rowY + 20,
+                    selectedForEdit ? 0xFF303F65 : over ? 0xFF1D2940 : 0xFF192235);
+            if (selectedForEdit) {
+                ctx.fill(rx + 8, rowY - 3, rx + 11, rowY + 20, 0xFF8A9AFF);
+            }
+
+            drawTextCenteredY(ctx, textRenderer.trimToWidth(messages.get(index), rw - 70),
+                    rx + 17, rowY - 3, 23, 0xFFDDE4F4);
+            drawTextCenteredY(ctx, "×", rx + rw - 28, rowY - 3, 23, 0xFFFF8795);
         }
+
         if (selectedNick != null && messages.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, "Для этого ника пока нет сообщений.", rx + 16, messageListY + 8, 0xFF78859D);
-            ctx.drawTextWithShadow(textRenderer, "Придумай своё и добавь снизу.", rx + 16, messageListY + 22, 0xFF78859D);
-        }
-        if (selectedNick == null) {
-            ctx.drawTextWithShadow(textRenderer, "У каждого игрока свой список фраз.", rx + 16, messageListY + 8, 0xFF78859D);
+            drawTextCenteredY(ctx, "Для этого ника пока нет сообщений.",
+                    rx + 16, messageListY + 2, 20, 0xFF78859D);
+            drawTextCenteredY(ctx, "Добавь своё сообщение снизу.",
+                    rx + 16, messageListY + 22, 20, 0xFF78859D);
+        } else if (selectedNick == null) {
+            drawTextCenteredY(ctx, "У каждого игрока свой список фраз.",
+                    rx + 16, messageListY + 2, 20, 0xFF78859D);
         }
 
-        inputFrame(ctx, rx + 11, messageY - 1, messageInput.getWidth() + 2, 22, messageInput.isFocused());
-        button(ctx, rx + 19 + messageInput.getWidth(), messageY, rw - messageInput.getWidth() - 31, 20,
-                "ДОБАВИТЬ", selectedNick != null, mx, my);
+        inputFrame(ctx, rx + 11, messageY - 1, messageFieldWidth + 2, 22, messageInput.isFocused());
+        button(ctx, messageActionX, messageY, 86, 20,
+                editingGreetingIndex >= 0 ? "СОХРАНИТЬ" : "ДОБАВИТЬ",
+                selectedNick != null, mx, my);
+        button(ctx, messageCancelX, messageY, 32, 20, "×",
+                editingGreetingIndex >= 0, mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, "G — настройки  •  H — колесо приветствий",
-                px + 20, py + ph - 22, 0xFF74829B);
-        ctx.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(notice, 245),
-                px + pw - 260, py + ph - 22, 0xFF9AA8C0);
+        drawTextCenteredY(ctx, "G — настройки · H — колесо приветствий",
+                px + 20, py + ph - 29, 18, 0xFF74829B);
+        drawTextCenteredY(ctx, textRenderer.trimToWidth(notice, 255),
+                px + pw - 270, py + ph - 29, 18, 0xFF9AA8C0);
+
         super.render(ctx, mx, my, delta);
+    }
+
+    private void drawTextCenteredY(DrawContext ctx, String value, int x, int top, int height, int color) {
+        int textY = top + Math.max(0, (height - textRenderer.fontHeight) / 2);
+        ctx.drawTextWithShadow(textRenderer, value, x, textY, color);
     }
 
     private List<String> filteredTargets() {
@@ -173,9 +214,12 @@ public final class WelcomeScreen extends Screen {
     private void button(DrawContext ctx, int x, int y, int w, int h, String label,
                         boolean enabled, int mx, int my) {
         boolean over = inside(mx, my, x, y, w, h);
-        int color = enabled ? (over ? 0xFF5269D7 : 0xFF3B50B0) : (over ? 0xFF35435D : 0xFF253149);
+        int color = enabled
+                ? (over ? 0xFF5269D7 : 0xFF3B50B0)
+                : (over ? 0xFF35435D : 0xFF253149);
         ctx.fill(x, y, x + w, y + h, color);
-        ctx.drawCenteredTextWithShadow(textRenderer, label, x + w / 2, y + (h - 8) / 2, 0xFFF5F7FF);
+        int textY = y + Math.max(0, (h - textRenderer.fontHeight) / 2);
+        ctx.drawCenteredTextWithShadow(textRenderer, label, x + w / 2, textY, 0xFFF5F7FF);
     }
 
     private boolean inside(double x, double y, int left, int top, int w, int h) {
@@ -186,12 +230,19 @@ public final class WelcomeScreen extends Screen {
         return Math.max(0, Math.min(value, Math.max(0, count - visible)));
     }
 
+    private void clearGreetingEditor() {
+        editingGreetingIndex = -1;
+        messageInput.setText("");
+        notice = "Режим редактирования закрыт.";
+    }
+
     private void addNick() {
         String nick = nickInput.getText().trim();
         if (GreetConfig.addTarget(nick)) {
             selectedNick = nick;
             nickInput.setText("");
             messageInput.setText("");
+            editingGreetingIndex = -1;
             targetScroll = 0;
             messageScroll = 0;
             notice = "Ник добавлен. Впиши для него фразу.";
@@ -200,73 +251,121 @@ public final class WelcomeScreen extends Screen {
         }
     }
 
-    private void addMessage() {
+    private void saveMessage() {
         if (selectedNick == null) {
             notice = "Сначала выбери ник.";
             return;
         }
-        if (GreetConfig.addGreeting(selectedNick, messageInput.getText())) {
+
+        String value = messageInput.getText();
+        if (editingGreetingIndex >= 0) {
+            if (GreetConfig.updateGreeting(selectedNick, editingGreetingIndex, value)) {
+                editingGreetingIndex = -1;
+                messageInput.setText("");
+                notice = "Изменения сохранены.";
+            } else {
+                notice = "Не удалось сохранить: проверь текст или повтор сообщения.";
+            }
+        } else if (GreetConfig.addGreeting(selectedNick, value)) {
             messageInput.setText("");
             messageScroll = Math.max(0, GreetConfig.getGreetings(selectedNick).size() - 7);
-            notice = "Сообщение сохранено для " + selectedNick;
+            notice = "Сообщение добавлено.";
         } else {
             notice = "Пустое, повторное сообщение или лимит 32.";
         }
     }
 
+    private void selectGreetingForEdit(int index) {
+        List<String> messages = GreetConfig.getGreetings(selectedNick);
+        if (index < 0 || index >= messages.size()) return;
+        editingGreetingIndex = index;
+        messageInput.setText(messages.get(index));
+        messageInput.setCursorToEnd(false);
+        messageInput.setFocused(true);
+        notice = "Измени текст снизу и нажми «Сохранить».";
+    }
+
+    private void removeGreeting(int index) {
+        if (!GreetConfig.removeGreeting(selectedNick, index)) return;
+
+        if (editingGreetingIndex == index) {
+            editingGreetingIndex = -1;
+            messageInput.setText("");
+        } else if (editingGreetingIndex > index) {
+            editingGreetingIndex--;
+        }
+        notice = "Фраза удалена.";
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
-        if (button != 0) return false;
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
 
         if (inside(mouseX, mouseY, px + pw - 132, py + 18, 112, 28)) {
-            GreetConfig.setEnabled(!GreetConfig.isEnabled());
-            notice = GreetConfig.isEnabled() ? "Автоприветствия включены." : "Автоприветствия выключены.";
+            GreetConfig.setAutoGreetingEnabled(!GreetConfig.isAutoGreetingEnabled());
+            notice = GreetConfig.isAutoGreetingEnabled()
+                    ? "Автоприветствия включены." : "Автоприветствия выключены.";
             return true;
         }
 
         List<String> names = filteredTargets();
-        int visible = Math.max(1, Math.min(7, (nickY - targetY - 6) / 25));
-        for (int i = 0; i < visible && targetScroll + i < names.size(); i++) {
-            int y = targetY + i * 25;
-            if (inside(mouseX, mouseY, lx + 8, y - 3, lw - 16, 23)) {
+        int visibleTargets = Math.max(1, Math.min(7, (nickY - targetY - 6) / 25));
+        for (int i = 0; i < visibleTargets && targetScroll + i < names.size(); i++) {
+            int rowY = targetY + i * 25;
+            if (inside(mouseX, mouseY, lx + 8, rowY - 3, lw - 16, 23)) {
                 selectedNick = names.get(targetScroll + i);
                 messageInput.setText("");
+                editingGreetingIndex = -1;
                 messageScroll = 0;
-                notice = "Редактируешь фразы для " + selectedNick;
+                notice = "Выбран игрок " + selectedNick + ".";
                 return true;
             }
         }
 
-        int addX = lx + 19 + nickInput.getWidth();
-        if (inside(mouseX, mouseY, addX, nickY, 38, 20)) {
+        int addNickX = lx + 19 + nickInput.getWidth();
+        if (inside(mouseX, mouseY, addNickX, nickY, 38, 20)) {
             addNick();
             return true;
         }
-        int removeX = lx + 61 + nickInput.getWidth();
-        if (inside(mouseX, mouseY, removeX, nickY, lw - nickInput.getWidth() - 81, 20)) {
+
+        int removeNickX = lx + 61 + nickInput.getWidth();
+        if (inside(mouseX, mouseY, removeNickX, nickY,
+                lw - nickInput.getWidth() - 81, 20)) {
             if (selectedNick != null && GreetConfig.removeTarget(selectedNick)) {
                 notice = "Игрок и его фразы удалены.";
                 selectedNick = null;
+                editingGreetingIndex = -1;
                 messageInput.setText("");
-            } else notice = "Сначала выбери игрока.";
+            } else {
+                notice = "Сначала выбери игрока.";
+            }
             return true;
         }
 
         if (selectedNick != null) {
             List<String> messages = GreetConfig.getGreetings(selectedNick);
-            int msgVisible = Math.max(1, Math.min(7, (messageY - messageListY - 6) / 25));
-            for (int i = 0; i < msgVisible && messageScroll + i < messages.size(); i++) {
-                int y = messageListY + i * 25;
-                if (inside(mouseX, mouseY, rx + rw - 39, y - 3, 31, 23)) {
-                    GreetConfig.removeGreeting(selectedNick, messageScroll + i);
-                    notice = "Фраза удалена.";
-                    return true;
+            int visibleMessages = Math.max(1, Math.min(7, (messageY - messageListY - 6) / 25));
+            for (int i = 0; i < visibleMessages && messageScroll + i < messages.size(); i++) {
+                int index = messageScroll + i;
+                int rowY = messageListY + i * 25;
+                if (!inside(mouseX, mouseY, rx + 8, rowY - 3, rw - 16, 23)) continue;
+
+                if (inside(mouseX, mouseY, rx + rw - 40, rowY - 3, 32, 23)) {
+                    removeGreeting(index);
+                } else {
+                    selectGreetingForEdit(index);
                 }
+                return true;
             }
-            int msgAddX = rx + 19 + messageInput.getWidth();
-            if (inside(mouseX, mouseY, msgAddX, messageY, rw - messageInput.getWidth() - 31, 20)) {
-                addMessage();
+
+            if (inside(mouseX, mouseY, messageActionX, messageY, 86, 20)) {
+                saveMessage();
+                return true;
+            }
+            if (inside(mouseX, mouseY, messageCancelX, messageY, 32, 20)
+                    && editingGreetingIndex >= 0) {
+                clearGreetingEditor();
                 return true;
             }
         }
@@ -276,11 +375,13 @@ public final class WelcomeScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
         if (inside(mouseX, mouseY, lx, ly, lw, paneH)) {
-            targetScroll = Math.max(0, targetScroll + (vertical < 0 ? 1 : -1));
+            targetScroll = clamp(targetScroll + (vertical < 0 ? 1 : -1),
+                    filteredTargets().size(), 7);
             return true;
         }
         if (inside(mouseX, mouseY, rx, ly, rw, paneH)) {
-            messageScroll = Math.max(0, messageScroll + (vertical < 0 ? 1 : -1));
+            int messageCount = selectedNick == null ? 0 : GreetConfig.getGreetings(selectedNick).size();
+            messageScroll = clamp(messageScroll + (vertical < 0 ? 1 : -1), messageCount, 7);
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontal, vertical);
@@ -294,9 +395,13 @@ public final class WelcomeScreen extends Screen {
                 return true;
             }
             if (messageInput.isFocused()) {
-                addMessage();
+                saveMessage();
                 return true;
             }
+        }
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && editingGreetingIndex >= 0) {
+            clearGreetingEditor();
+            return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }

@@ -156,6 +156,23 @@ public final class GreetConfig {
         return true;
     }
 
+    public static synchronized boolean updateGreeting(String nick, int index, String message) {
+        if (nick == null || !containsTargetInternal(nick)) return false;
+        List<String> values = greetings.get(normalize(nick));
+        if (values == null || index < 0 || index >= values.size()) return false;
+
+        String value = message == null ? "" : message.trim();
+        if (value.isEmpty() || value.length() > MAX_GREETING_LENGTH) return false;
+
+        for (int i = 0; i < values.size(); i++) {
+            if (i != index && values.get(i).equals(value)) return false;
+        }
+
+        values.set(index, value);
+        save();
+        return true;
+    }
+
     public static synchronized boolean removeGreeting(String nick, int index) {
         if (nick == null) return false;
         List<String> values = greetings.get(normalize(nick));
