@@ -23,7 +23,7 @@ public final class BridgeController {
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
 
-        if (!BridgeConfig.laneAssist || player == null || client.world == null
+        if ((!BridgeConfig.laneAssist && !BridgeConfig.edgeGuard) || player == null || client.world == null
                 || client.currentScreen != null || player.hasVehicle()
                 || player.isTouchingWater() || player.isInLava()) {
             resetLane();
@@ -70,20 +70,25 @@ public final class BridgeController {
         // the direction of travel along the bridge itself.
         double sideX = -laneZ;
         double sideZ = laneX;
-        double error = (player.getX() - (support.getX() + 0.5)) * sideX
-                + (player.getZ() - (support.getZ() + 0.5)) * sideZ;
+        double adjustedX = original.x;
+        double adjustedY = original.y;
 
-        double correction = 0.0;
-        double deadZone = 0.012;
-        if (Math.abs(error) > deadZone) {
-            double amount = Math.min(0.22, (Math.abs(error) - deadZone) * 1.35 * BridgeConfig.strength);
-            correction = -Math.copySign(amount, error);
+        if (BridgeConfig.laneAssist) {
+            double error = (player.getX() - (support.getX() + 0.5)) * sideX
+                    + (player.getZ() - (support.getZ() + 0.5)) * sideZ;
+
+            double correction = 0.0;
+            double deadZone = 0.012;
+            if (Math.abs(error) > deadZone) {
+                double amount = Math.min(0.22, (Math.abs(error) - deadZone) * 1.35 * BridgeConfig.strength);
+                correction = -Math.copySign(amount, error);
+            }
+
+            double correctionX = sideX * correction;
+            double correctionZ = sideZ * correction;
+            adjustedX += correctionX * leftX + correctionZ * leftZ;
+            adjustedY += correctionX * forwardX + correctionZ * forwardZ;
         }
-
-        double correctionX = sideX * correction;
-        double correctionZ = sideZ * correction;
-        double adjustedX = original.x + correctionX * leftX + correctionZ * leftZ;
-        double adjustedY = original.y + correctionX * forwardX + correctionZ * forwardZ;
 
         if (BridgeConfig.edgeGuard && !hasSupportAt(client, player,
                 player.getX() + laneX * 0.40, player.getZ() + laneZ * 0.40)) {
