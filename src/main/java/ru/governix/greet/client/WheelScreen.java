@@ -123,11 +123,11 @@ public final class WheelScreen extends Screen {
                         active ? 0xFF536FE0 : 0xFF202D45,
                         active ? 0xFF9EADFF : 0xFF3A4966);
                 String label = textRenderer.trimToWidth(value, NODE_WIDTH - 14);
-                ctx.drawCenteredTextWithShadow(textRenderer, label, x, y - 4, 0xFFF3F6FF);
+                ctx.drawCenteredTextWithShadow(textRenderer, label, x, y - 10, 0xFFF3F6FF);
                 if (choosingPlayers()) {
-                    ctx.drawCenteredTextWithShadow(textRenderer, "В TAB", x, y + 9, 0xFF9FB4D7);
+                    ctx.drawCenteredTextWithShadow(textRenderer, "В TAB", x, y + 2, 0xFF9FB4D7);
                 } else {
-                    ctx.drawCenteredTextWithShadow(textRenderer, "ОТПРАВИТЬ", x, y + 9, 0xFF9FB4D7);
+                    ctx.drawCenteredTextWithShadow(textRenderer, "ОТПРАВИТЬ", x, y + 2, 0xFF9FB4D7);
                 }
             }
         }
@@ -135,8 +135,8 @@ public final class WheelScreen extends Screen {
         drawCircle(ctx, centerX, centerY, 57, 0xFF7184EA);
         drawCircle(ctx, centerX, centerY, 53, 0xFF121B2B);
         if (choosingPlayers()) {
-            ctx.drawCenteredTextWithShadow(textRenderer, "GREET", centerX, centerY - 8, 0xFFF2F5FF);
-            ctx.drawCenteredTextWithShadow(textRenderer, "MATE", centerX, centerY + 7, 0xFF8FA2FF);
+            ctx.drawCenteredTextWithShadow(textRenderer, "GREET", centerX, centerY - 10, 0xFFF2F5FF);
+            ctx.drawCenteredTextWithShadow(textRenderer, "MATE", centerX, centerY + 2, 0xFF8FA2FF);
         } else {
             ctx.drawCenteredTextWithShadow(textRenderer, textRenderer.trimToWidth(selectedPlayer, 90),
                     centerX, centerY - 4, 0xFFF2F5FF);
