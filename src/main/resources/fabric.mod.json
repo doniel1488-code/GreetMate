@@ -3,6 +3,7 @@
   "id": "greetmate",
   "version": "${version}",
   "name": "GreetMate",
+  "icon": "assets/greetmate/icon.png",
   "description": "Personal chat greetings when selected players appear in TAB.",
   "authors": ["Governix"],
   "license": "MIT",

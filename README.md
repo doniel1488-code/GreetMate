@@ -1,5 +1,7 @@
 # GreetMate 2.0.2 — Minecraft 1.21.8 (Fabric)
 
+![GreetMate icon](src/main/resources/assets/greetmate/icon.png)
+
 Клиентский Fabric-мод для персональных приветствий с быстрым радиальным меню.
 
 ## Управление
