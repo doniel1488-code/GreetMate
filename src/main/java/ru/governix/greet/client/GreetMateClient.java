@@ -10,22 +10,35 @@ import org.lwjgl.glfw.GLFW;
 import ru.governix.greet.config.GreetConfig;
 
 public final class GreetMateClient implements ClientModInitializer {
-    private static KeyBinding openScreenKey;
+    private static KeyBinding openSettingsKey;
+    private static KeyBinding openWheelKey;
 
     @Override
     public void onInitializeClient() {
         GreetConfig.load();
 
-        openScreenKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.greetmate.open",
+        openSettingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.greetmate.open_settings",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_G,
                 "category.greetmate"
         ));
 
+        openWheelKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.greetmate.open_wheel",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H,
+                "category.greetmate"
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (openScreenKey.wasPressed()) {
+            while (openSettingsKey.wasPressed()) {
                 client.setScreen(new WelcomeScreen(client.currentScreen));
+            }
+            while (openWheelKey.wasPressed()) {
+                if (client.player != null && client.getNetworkHandler() != null) {
+                    client.setScreen(new WheelScreen(client.currentScreen));
+                }
             }
             WelcomeTracker.tick(client);
         });

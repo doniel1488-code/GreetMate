@@ -1,4 +1,5 @@
 {
-  "key.greetmate.open": "Открыть GreetMate",
+  "key.greetmate.open_settings": "Открыть настройки GreetMate",
+  "key.greetmate.open_wheel": "Открыть колесо приветствий",
   "category.greetmate": "GreetMate"
 }

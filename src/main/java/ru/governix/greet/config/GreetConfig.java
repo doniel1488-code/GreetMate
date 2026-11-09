@@ -28,7 +28,8 @@ public final class GreetConfig {
     private static final int MAX_GREETINGS_PER_PLAYER = 32;
     private static final int MAX_GREETING_LENGTH = 256;
 
-    private static boolean enabled = true;
+    // "enabled" from 1.x configs is still read and written for backward compatibility.
+    private static boolean autoGreetingEnabled = true;
     private static final Set<String> targets = new LinkedHashSet<>();
     private static final Map<String, List<String>> greetings = new LinkedHashMap<>();
 
@@ -37,7 +38,7 @@ public final class GreetConfig {
     public static synchronized void load() {
         targets.clear();
         greetings.clear();
-        enabled = true;
+        autoGreetingEnabled = true;
         if (!Files.exists(FILE)) {
             save();
             return;
@@ -46,7 +47,12 @@ public final class GreetConfig {
         try {
             JsonObject root = JsonParser.parseString(
                     Files.readString(FILE, StandardCharsets.UTF_8)).getAsJsonObject();
-            if (root.has("enabled")) enabled = root.get("enabled").getAsBoolean();
+
+            if (root.has("autoGreetingEnabled")) {
+                autoGreetingEnabled = root.get("autoGreetingEnabled").getAsBoolean();
+            } else if (root.has("enabled")) {
+                autoGreetingEnabled = root.get("enabled").getAsBoolean();
+            }
 
             if (root.has("targets") && root.get("targets").isJsonArray()) {
                 for (JsonElement element : root.getAsJsonArray("targets")) {
@@ -78,7 +84,9 @@ public final class GreetConfig {
 
     public static synchronized void save() {
         JsonObject root = new JsonObject();
-        root.addProperty("enabled", enabled);
+        root.addProperty("autoGreetingEnabled", autoGreetingEnabled);
+        root.addProperty("enabled", autoGreetingEnabled); // Legacy key for 1.x compatibility.
+
         JsonArray targetArray = new JsonArray();
         targets.forEach(targetArray::add);
         root.add("targets", targetArray);
@@ -162,13 +170,22 @@ public final class GreetConfig {
         return new ArrayList<>(greetings.getOrDefault(normalize(nick), List.of()));
     }
 
+    public static synchronized boolean isAutoGreetingEnabled() {
+        return autoGreetingEnabled;
+    }
+
+    public static synchronized void setAutoGreetingEnabled(boolean value) {
+        autoGreetingEnabled = value;
+        save();
+    }
+
+    // Compatibility aliases used by older UI code.
     public static synchronized boolean isEnabled() {
-        return enabled;
+        return isAutoGreetingEnabled();
     }
 
     public static synchronized void setEnabled(boolean value) {
-        enabled = value;
-        save();
+        setAutoGreetingEnabled(value);
     }
 
     public static String normalize(String value) {
