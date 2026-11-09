@@ -84,8 +84,13 @@ jobs:
             printf '%s\n' '- Исправлено вертикальное выравнивание подписей, строк и кнопок главного GUI.'
             printf '%s\n' '- Настройки старых версий переносятся без удаления сохранённых ников и сообщений.'
             printf '\n### Установка\n'
-            printf 'Помести файл %s в папку .minecraft/mods.\n' "$JAR_NAME"
-            printf 'Нужны Fabric Loader и Fabric API для Minecraft 1.21.8.\n'
+            printf 'Помести файл %s и Fabric API в папку .minecraft/mods.\n' "$JAR_NAME"
+            printf 'Требуются Minecraft Java Edition 1.21.8, Java 21, Fabric Loader и Fabric API 0.136.1+1.21.8.\n\n'
+            printf '%s\n' '- [Установщик Fabric Loader](https://fabricmc.net/use/installer/)'
+            printf '%s\n' '- [Fabric API 0.136.1+1.21.8 на Modrinth](https://modrinth.com/mod/fabric-api/versions?g=1.21.8&l=fabric)'
+            printf '%s\n' '- [Java 21 (Eclipse Temurin)](https://adoptium.net/temurin/releases/?version=21)'
+            printf '%s\n' '- [Инструкция по установке модов Fabric](https://docs.fabricmc.net/players/installing-mods)'
+            printf '\\nСкачать GreetMate: https://github.com/doniel1488-code/GreetMate/releases/latest\\n'
           } > release-notes.md
 
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
