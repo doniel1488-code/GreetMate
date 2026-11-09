@@ -79,12 +79,12 @@ public final class WelcomeScreen extends Screen {
         panel(ctx, rx, ly, rw, paneH, 0xFF141B2B, 0xFF26334A);
         ctx.fill(px + 1, py + 1, px + pw - 1, py + 4, 0xFF7485FF);
 
-        ctx.drawTextWithShadow(textRenderer, "GREETMATE", px + 20, py + 16, 0xFFF2F5FF);
-        ctx.drawTextWithShadow(textRenderer, "ТВОИ ПРИВЕТСТВИЯ ДЛЯ ИГРОКОВ ИЗ TAB", px + 20, py + 37, 0xFF8F9CB5);
+        ctx.drawTextWithShadow(textRenderer, "GreetMate", px + 20, py + 16, 0xFFF2F5FF);
+        ctx.drawTextWithShadow(textRenderer, "Персональные приветствия и быстрый выбор", px + 20, py + 37, 0xFF8F9CB5);
         button(ctx, px + pw - 132, py + 18, 112, 28,
-                GreetConfig.isEnabled() ? "ВКЛЮЧЕНО" : "ВЫКЛЮЧЕНО", GreetConfig.isEnabled(), mx, my);
+                GreetConfig.isEnabled() ? "АВТО: ВКЛ" : "АВТО: ВЫКЛ", GreetConfig.isEnabled(), mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, "ИГРОКИ", lx + 12, ly + 12, 0xFFE7ECFA);
+        ctx.drawTextWithShadow(textRenderer, "Игроки", lx + 12, ly + 12, 0xFFE7ECFA);
         ctx.drawTextWithShadow(textRenderer, GreetConfig.getTargets().size() + " ников", lx + lw - 64, ly + 12, 0xFF8190AA);
         inputFrame(ctx, lx + 11, searchY - 1, lw - 22, 22, search.isFocused());
 
@@ -112,7 +112,7 @@ public final class WelcomeScreen extends Screen {
         button(ctx, lx + 19 + nickInput.getWidth(), nickY, 38, 20, "+", true, mx, my);
         button(ctx, lx + 61 + nickInput.getWidth(), nickY, lw - nickInput.getWidth() - 81, 20, "УДАЛИТЬ", false, mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, selectedNick == null ? "СООБЩЕНИЯ" : "ДЛЯ " + selectedNick,
+        ctx.drawTextWithShadow(textRenderer, selectedNick == null ? "Сообщения" : "Для " + selectedNick,
                 rx + 12, ly + 12, 0xFFE7ECFA);
         ctx.drawTextWithShadow(textRenderer, selectedNick == null ? "Сначала выбери ник слева" :
                         "Вариантов: " + GreetConfig.getGreetings(selectedNick).size() + "  •  случайный выбор",
@@ -144,7 +144,7 @@ public final class WelcomeScreen extends Screen {
         button(ctx, rx + 19 + messageInput.getWidth(), messageY, rw - messageInput.getWidth() - 31, 20,
                 "ДОБАВИТЬ", selectedNick != null, mx, my);
 
-        ctx.drawTextWithShadow(textRenderer, "G — меню  •  TAB — статус  •  настройки сохраняются",
+        ctx.drawTextWithShadow(textRenderer, "G — настройки  •  H — колесо приветствий",
                 px + 20, py + ph - 22, 0xFF74829B);
         ctx.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(notice, 245),
                 px + pw - 260, py + ph - 22, 0xFF9AA8C0);

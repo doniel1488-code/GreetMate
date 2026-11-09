@@ -29,6 +29,7 @@ public final class WelcomeTracker {
     public static void reset() {
         LISTED_IDS.clear();
         GREETED_THIS_SESSION.clear();
+        LAST_GREETING.clear();
         OUTGOING.clear();
         initialized = false;
         sendCooldown = 0;

@@ -101,6 +101,7 @@ public final class WheelScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, subtitle, centerX, centerY - radius - 50, 0xFF9BAAC2);
 
         List<String> items = currentItems();
+        page = Math.max(0, Math.min(page, pageCount() - 1));
         itemCount = currentItemCount();
         hovered = hitNode(mouseX, mouseY);
 

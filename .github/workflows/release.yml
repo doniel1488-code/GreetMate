@@ -59,7 +59,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           path: dist
 
-      - name: Publish GitHub Release
+      - name: Publish or refresh GitHub Release
         if: steps.freshness.outputs.publish == 'true'
         shell: bash
         env:
@@ -71,30 +71,30 @@ jobs:
           set -euo pipefail
           JAR="$(find dist -maxdepth 1 -type f -name '*.jar' -print -quit)"
           test -n "$JAR"
+          JAR_NAME="$(basename "$JAR")"
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; not creating a duplicate."
-            exit 0
+          {
+            printf '## GreetMate %s\n\n' "$VERSION"
+            printf 'Клиентский Fabric-мод для Minecraft 1.21.8.\n\n'
+            printf '### Что нового\n'
+            printf '%s\n' '- Быстрое радиальное колесо: сначала выбор онлайн-игрока из TAB, затем одной из его сохранённых фраз.'
+            printf '%s\n' '- Настраиваемый бинд колеса (по умолчанию H) и отдельный бинд настроек (G).'
+            printf '%s\n' '- Автоприветствия можно включать отдельно; кеш сессии не допускает повторов при скрытии/возврате в TAB.'
+            printf '%s\n' '- Настройки старых версий переносятся без удаления сохранённых ников и сообщений.'
+            printf '\n### Установка\n'
+            printf 'Помести файл %s в папку .minecraft/mods.\n' "$JAR_NAME"
+            printf 'Нужны Fabric Loader и Fabric API для Minecraft 1.21.8.\n'
+          } > release-notes.md
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "GreetMate $VERSION" --notes-file release-notes.md
+            gh release upload "$TAG" "$JAR" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$JAR" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "GreetMate $VERSION" \
+              --notes-file release-notes.md \
+              --target "$TARGET_SHA" \
+              --latest
           fi
-
-          cat > release-notes.md <<EOF
-          ## GreetMate $VERSION
-
-          Клиентский Fabric-мод для Minecraft 1.21.8.
-
-          ### Изменения
-          - Статус игрока определяется по актуальному списку TAB Minecraft.
-          - Обрабатываются серверные события скрытия игрока из TAB и его возвращения.
-          - Персональные приветствия и настройки каждого ника сохраняются без изменений.
-
-          ### Установка
-          Помести приложенный `$(basename "$JAR")` в папку `.minecraft/mods`.
-          Требуются Fabric Loader и Fabric API для Minecraft 1.21.8.
-          EOF
-
-          gh release create "$TAG" "$JAR" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "GreetMate $VERSION" \
-            --notes-file release-notes.md \
-            --target "$TARGET_SHA" \
-            --latest
