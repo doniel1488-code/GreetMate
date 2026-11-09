@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "governixbridge",
+  "version": "${version}",
+  "name": "GovernixBridge",
+  "description": "Client-side bridge lane alignment and edge assistance for Minecraft.",
+  "authors": ["Governix"],
+  "license": "MIT",
+  "icon": "assets/governixbridge/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["ru.governix.bridge.GovernixBridgeClient"]
+  },
+  "mixins": ["governixbridge.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.8",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
