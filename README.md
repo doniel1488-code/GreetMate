@@ -28,7 +28,22 @@
 
 ## Установка
 
-Скачай `greetmate-2.0.1.jar` из GitHub Releases и перемести его в `.minecraft/mods`. Требуются Fabric Loader и Fabric API для Minecraft 1.21.8. Это клиентский мод, он отправляет выбранный текст в обычный чат от имени твоего аккаунта. Серверные ограничения чата и антиспам продолжают действовать.
+### Что понадобится
+
+- **Minecraft Java Edition 1.21.8**.
+- **Java 21** — [скачать Eclipse Temurin 21](https://adoptium.net/temurin/releases/?version=21).
+- **Fabric Loader** — [официальный установщик Fabric](https://fabricmc.net/use/installer/). В установщике выбери Minecraft **1.21.8** и создай профиль Fabric.
+- **Fabric API 0.136.1+1.21.8** — [скачать подходящую версию на Modrinth](https://modrinth.com/mod/fabric-api/versions?g=1.21.8&l=fabric). Нужен файл для Minecraft 1.21.8 и загрузчика Fabric.
+
+### Установка мода
+
+1. Скачай [последний GreetMate из GitHub Releases](https://github.com/doniel1488-code/GreetMate/releases/latest).
+2. Помести `greetmate-*.jar` и файл Fabric API в папку `.minecraft/mods`.
+3. Запусти Minecraft через профиль Fabric для версии **1.21.8**.
+
+Если не знаешь, где находится папка `mods`, смотри [официальную инструкцию Fabric](https://docs.fabricmc.net/players/installing-mods).
+
+GreetMate — клиентский мод: он отправляет выбранный текст в обычный чат от имени твоего аккаунта. Серверные ограничения чата и антиспам продолжают действовать.
 
 ## Сборка
 
