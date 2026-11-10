@@ -3,13 +3,13 @@
   "id": "governixminer",
   "version": "${version}",
   "name": "GovernixMiner",
-  "description": "Automatically holds the normal attack input while a block is targeted.",
+  "description": "Auto-mines targeted blocks and selects the fastest suitable hotbar tool.",
   "authors": ["Governix"],
   "license": "MIT",
   "icon": "assets/governixminer/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["ru.governix.miner.GovernixMinerClient$Entrypoint"]
+    "client": ["ru.governix.miner.GovernixMinerClient"]
   },
   "depends": {
     "fabricloader": ">=0.16.0",

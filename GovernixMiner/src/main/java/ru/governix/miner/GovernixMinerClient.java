@@ -18,32 +18,28 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
-public final class GovernixMinerClient {
+public final class GovernixMinerClient implements ClientModInitializer {
     private static KeyBinding toggleKey;
     private static boolean enabled;
     private static boolean controllingAttackKey;
     private static int originalSlot = -1;
 
-    private GovernixMinerClient() {}
+    @Override
+    public void onInitializeClient() {
+        toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.governixminer.toggle",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G,
+                "category.governixminer"
+        ));
 
-    public static final class Entrypoint implements ClientModInitializer {
-        @Override
-        public void onInitializeClient() {
-            toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                    "key.governixminer.toggle",
-                    InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_G,
-                    "category.governixminer"
-            ));
+        ClientTickEvents.END_CLIENT_TICK.register(GovernixMinerClient::tick);
 
-            ClientTickEvents.END_CLIENT_TICK.register(GovernixMinerClient::tick);
-
-            ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-                enabled = false;
-                releaseAttackKey(client);
-                restoreOriginalSlot(client);
-            });
-        }
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            enabled = false;
+            releaseAttackKey(client);
+            restoreOriginalSlot(client);
+        });
     }
 
     private static void tick(MinecraftClient client) {
