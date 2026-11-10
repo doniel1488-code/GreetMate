@@ -9,7 +9,7 @@
   "icon": "assets/governixminer/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": ["ru.governix.miner.GovernixMinerClient"]
+    "client": ["ru.governix.miner.GovernixMinerClient$Entrypoint"]
   },
   "depends": {
     "fabricloader": ">=0.16.0",
