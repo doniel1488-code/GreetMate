@@ -1,0 +1,51 @@
+name: Build GovernixMiner
+
+on:
+  push:
+    branches: [governix-miner]
+    paths:
+      - "GovernixMiner/**"
+      - ".github/workflows/build-governixminer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Fabric 1.21.8 mod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Build and remap mod
+        run: gradle --no-daemon -p GovernixMiner clean build
+
+      - name: Prepare release JAR
+        shell: bash
+        run: |
+          mkdir -p GovernixMiner/dist
+          find GovernixMiner/build/libs -maxdepth 1 -type f -name 'governixminer-*.jar' \
+            ! -name '*-dev.jar' ! -name '*-sources.jar' -exec cp {} GovernixMiner/dist/ \;
+          ls -lah GovernixMiner/dist
+          test "$(find GovernixMiner/dist -maxdepth 1 -name '*.jar' | wc -l)" -eq 1
+
+      - name: Upload mod JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: GovernixMiner-Fabric-1.21.8
+          path: GovernixMiner/dist/*.jar
+          if-no-files-found: error
+          retention-days: 30
